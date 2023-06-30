@@ -9,27 +9,21 @@ function startFtpServer() {
     pasv_url: resolverFunction,
     greeting: "Welcome to VOFTP a very open FTP Server.",
     file_format: "ls",
-    blacklist: ["DELE", "RMD"],
+    whitelist: ["USER", "PASS", "PWD", "TYPE", "PASV", "LIST", "STOR"],
   });
 
   ftpServer.on(
     "login",
     ({ connection, username, password }, resolve, reject) => {
-      if (username !== "" && password !== "") {
-        return resolve({ root: `${__dirname}//..//..//..//black-box//ftp` });
-      }
       connection.on("STOR", (error, fileName) => {
         moveToPandoraBox(fileName, connection.log.fields.ip);
       });
+      if (username !== "" && password !== "") {
+        return resolve({ root: `${__dirname}//..//..//..//black-box//ftp//` });
+      }
       return reject(new Error("Invalid username or password", 401));
     }
   );
-  ftpServer.on("client-error", ({ connection, context, error }) => {
-    console.log("client-error :", error, connection, context);
-  });
-  ftpServer.on("server-error", ({ error }) => {
-    console.log("server-error :", error);
-  });
 
   ftpServer.listen().then(() => {
     console.log("Ftp server is starting...");
