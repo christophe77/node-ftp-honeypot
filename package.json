@@ -1,0 +1,26 @@
+{
+  "name": "honeynode",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "christophe bellec",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "lint": "eslint . --ext .js --fix"
+  },
+  "dependencies": {
+    "ftp-srv": "^4.6.2",
+    "netmask": "^2.0.2",
+    "ssh2": "^1.14.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.12.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-prettier": "^4.0.0",
+    "nodemon": "^2.0.22",
+    "prettier": "^2.6.2"
+  }
+}

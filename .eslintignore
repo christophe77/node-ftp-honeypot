@@ -1,0 +1,3 @@
+node_modules/*/**
+black-box/*/**
+pandora-box/*/**
