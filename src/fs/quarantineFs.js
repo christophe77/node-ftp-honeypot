@@ -151,8 +151,14 @@ class QuarantineFileSystem extends FileSystem {
     return { stream, clientPath };
   }
 
-  read() {
-    throw new PermissionError();
+  // Only the bait files can be downloaded, and every download is logged:
+  // what bots try to steal says a lot about what they are looking for.
+  async read(fileName) {
+    const { fsPath, clientPath } = this._resolvePath(fileName);
+    const stat = await fs.promises.lstat(fsPath).catch(() => null);
+    if (!stat || !stat.isFile()) throw new PermissionError("No such file");
+    this.events.download({ clientPath, size: stat.size });
+    return { stream: fs.createReadStream(fsPath), clientPath };
   }
 
   delete() {

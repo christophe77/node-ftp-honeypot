@@ -1,0 +1,27 @@
+<?php
+/**
+ * The base configuration for WordPress
+ * Backup made before migration, DO NOT DELETE
+ */
+
+define( 'DB_NAME', 'wp_prod' );
+define( 'DB_USER', 'wp_admin' );
+define( 'DB_PASSWORD', 'Bzz-db-2019!' );
+define( 'DB_HOST', 'localhost' );
+define( 'DB_CHARSET', 'utf8mb4' );
+define( 'DB_COLLATE', '' );
+
+define( 'AUTH_KEY',         'put your unique phrase here' );
+define( 'SECURE_AUTH_KEY',  'put your unique phrase here' );
+define( 'LOGGED_IN_KEY',    'put your unique phrase here' );
+define( 'NONCE_KEY',        'put your unique phrase here' );
+
+$table_prefix = 'wp_';
+
+define( 'WP_DEBUG', false );
+
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', __DIR__ . '/' );
+}
+
+require_once ABSPATH . 'wp-settings.php';

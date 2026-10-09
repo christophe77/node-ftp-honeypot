@@ -1,12 +1,12 @@
 {
   "name": "node-ftp-honeypot",
-  "version": "1.0.1",
-  "main": "index.js",
+  "version": "2.0.0",
+  "main": "src/index.js",
   "author": "christophe bellec",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js",
+    "dev": "nodemon bin/cli.js",
+    "start": "node bin/cli.js",
     "lint": "eslint .",
     "test": "node --test"
   },
@@ -26,5 +26,23 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "bin": {
+    "node-ftp-honeypot": "bin/cli.js"
+  },
+  "description": "FTP honeypot: logs every credential and command, quarantines uploads, serves bait files with honeytokens",
+  "repository": "https://github.com/christophe77/node-ftp-honeypot",
+  "files": [
+    "bin/",
+    "src/",
+    "black-box/"
+  ],
+  "keywords": [
+    "honeypot",
+    "ftp",
+    "security",
+    "threat-intelligence",
+    "honeytoken",
+    "malware"
+  ]
 }

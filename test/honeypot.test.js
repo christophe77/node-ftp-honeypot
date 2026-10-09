@@ -28,6 +28,7 @@ before(async () => {
     maxFileBytes: 1024,
     maxTotalBytes: 3000,
     maxConnectionsPerIp: 3,
+    honeytokens: ["bait-password-1"],
     onEvent: (event) => events.push(event),
   });
   ({ port } = await honeypot.start());
@@ -107,11 +108,48 @@ test("an upload cut in the middle does not crash anything", async () => {
   again.close();
 });
 
-test("downloads, deletes and renames are refused", async () => {
+test("bait files can be downloaded, and every download is logged", async () => {
   const client = await connect();
-  await assert.rejects(
-    client.downloadTo(new (require("stream").PassThrough)(), "backup.sql")
+  const chunks = [];
+  const sink = new (require("stream").Writable)({
+    write(chunk, encoding, callback) {
+      chunks.push(chunk);
+      callback();
+    },
+  });
+  await client.downloadTo(sink, "backup.sql");
+  client.close();
+  assert.strictEqual(
+    Buffer.concat(chunks).toString(),
+    "-- nothing to see here"
   );
+  const download = of("download").at(-1);
+  assert.strictEqual(download.clientPath, "/backup.sql");
+  assert.strictEqual(download.size, 22);
+});
+
+test("downloads cannot leave the bait directory", async () => {
+  const client = await connect();
+  const sink = new (require("stream").PassThrough)();
+  sink.resume();
+  await assert.rejects(client.downloadTo(sink, "../../../package.json"));
+  await assert.rejects(client.downloadTo(sink, "/"));
+  client.close();
+});
+
+test("a login with a honeytoken password is flagged", async () => {
+  const client = await connect("admin", "bait-password-1");
+  client.close();
+  const flagged = of("login").at(-1);
+  assert.strictEqual(flagged.honeytoken, true);
+  assert.strictEqual(
+    of("login").find((e) => e.password === "toor").honeytoken,
+    false
+  );
+});
+
+test("deletes and renames are refused", async () => {
+  const client = await connect();
   await assert.rejects(client.remove("backup.sql"));
   await assert.rejects(client.rename("backup.sql", "x.sql"));
   client.close();

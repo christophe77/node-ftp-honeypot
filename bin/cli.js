@@ -1,5 +1,6 @@
-const { createFtpHoneypot } = require("./src/honeypot");
-const { fromEnv } = require("./src/config");
+#!/usr/bin/env node
+const { createFtpHoneypot } = require("../src/honeypot");
+const { fromEnv } = require("../src/config");
 
 const config = fromEnv();
 
@@ -7,7 +8,12 @@ const honeypot = createFtpHoneypot({
   ...config,
   onEvent: (event) => {
     if (event.type === "login") {
-      console.log(`🔑 ${event.ip} tried ${event.username} / ${event.password}`);
+      const flag = event.honeytoken ? " 🚨 password from the bait files!" : "";
+      console.log(
+        `🔑 ${event.ip} tried ${event.username} / ${event.password}${flag}`
+      );
+    } else if (event.type === "download") {
+      console.log(`🎣 ${event.ip} grabbed the bait ${event.clientPath}`);
     } else if (event.type === "upload") {
       console.log(
         `📦 ${event.ip} uploaded ${event.clientPath} (${event.size} bytes, sha256 ${event.sha256})`
