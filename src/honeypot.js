@@ -6,8 +6,8 @@ const { createPasvResolver } = require("./net/pasv");
 const { createQuarantine, QuarantineFileSystem } = require("./fs/quarantineFs");
 const { normalizeIp } = require("./utils/sanitize");
 
-// Everything a scanner needs to look around and drop a file. No RETR, no
-// DELE, and no PORT/EPRT: active mode would let anyone make us open
+// Everything a scanner needs to look around, grab the bait and drop a file.
+// No DELE, no RNFR, and no PORT/EPRT: active mode would let anyone make us open
 // connections to any address (the good old FTP bounce attack).
 const ALLOWED_COMMANDS = [
   "USER",
@@ -27,6 +27,8 @@ const ALLOWED_COMMANDS = [
   "EPSV",
   "LIST",
   "NLST",
+  "SIZE",
+  "RETR",
   "STOR",
 ];
 
@@ -66,6 +68,11 @@ function createFtpHoneypot(userOptions = {}) {
   });
 
   const connectionsPerIp = new Map();
+  const ignoredIps = new Set((options.ignoreIps || []).map(normalizeIp));
+  const honeytokens = new Set(options.honeytokens || []);
+  // Your own monitoring (or Docker healthcheck) should not pollute the logs.
+  const record = (type, fields) =>
+    ignoredIps.has(fields.ip) ? null : events.record(type, fields);
 
   server.on("connect", ({ connection, id }) => {
     const ip = normalizeIp(connection.ip);
@@ -76,19 +83,19 @@ function createFtpHoneypot(userOptions = {}) {
       const left = (connectionsPerIp.get(ip) || 1) - 1;
       if (left > 0) connectionsPerIp.set(ip, left);
       else connectionsPerIp.delete(ip);
-      events.record("disconnect", session);
+      record("disconnect", session);
     });
 
     const total = Object.keys(server.connections).length;
     if (count > options.maxConnectionsPerIp || total > options.maxConnections) {
-      events.record("connection_refused", {
+      record("connection_refused", {
         ...session,
         reason: "too many connections",
       });
       connection.close(421, "Too many connections").catch(() => {});
       return;
     }
-    events.record("connect", session);
+    record("connect", session);
 
     // Log every command the client sends, before ftp-srv even looks at it.
     const { commands } = connection;
@@ -96,7 +103,7 @@ function createFtpHoneypot(userOptions = {}) {
     commands.handle = (raw) => {
       const command = typeof raw === "string" ? commands.parse(raw) : raw;
       if (!["USER", "PASS"].includes(command.directive)) {
-        events.record("command", {
+        record("command", {
           ...session,
           directive: command.directive,
           arg: command.arg,
@@ -111,17 +118,23 @@ function createFtpHoneypot(userOptions = {}) {
   server.on("login", ({ connection, username, password }, resolve) => {
     const ip = normalizeIp(connection.ip);
     const session = { session: connection.id, ip };
-    events.record("login", { ...session, username, password });
+    record("login", {
+      ...session,
+      username,
+      password,
+      // A password we only ever wrote in the bait files: this bot read them.
+      honeytoken: honeytokens.has(password),
+    });
     resolve({
       fs: new QuarantineFileSystem(connection, {
         root: options.baitDir,
         quarantine,
         ip,
         events: {
-          stored: (upload) =>
-            events.record("upload", { ...session, ...upload }),
+          stored: (upload) => record("upload", { ...session, ...upload }),
+          download: (details) => record("download", { ...session, ...details }),
           reject: (details) =>
-            events.record("upload_rejected", { ...session, ...details }),
+            record("upload_rejected", { ...session, ...details }),
         },
       }),
     });
@@ -129,7 +142,7 @@ function createFtpHoneypot(userOptions = {}) {
 
   // Errors from a single client must never take the whole server down.
   server.on("client-error", ({ connection, context, error }) => {
-    events.record("client_error", {
+    record("client_error", {
       session: connection && connection.id,
       ip: connection && normalizeIp(connection.ip),
       context,

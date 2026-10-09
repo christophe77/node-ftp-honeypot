@@ -7,6 +7,15 @@ const env = (name, fallback) =>
 
 const number = (name, fallback) => Number(env(name, fallback));
 
+const list = (name, fallback) => {
+  const value = env(name, undefined);
+  if (value === undefined) return fallback;
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 const MB = 1024 * 1024;
 
 const DEFAULTS = {
@@ -18,7 +27,8 @@ const DEFAULTS = {
   pasvUrl: null,
   pasvMin: 50000,
   pasvMax: 50100,
-  dataDir: path.join(__dirname, "..", "pandora-box"),
+  // Relative to where you run it, never inside node_modules.
+  dataDir: path.resolve("pandora-box"),
   baitDir: path.join(__dirname, "..", "black-box", "ftp"),
   greeting: "Welcome to VOFTP a very open FTP Server.",
   maxFileBytes: 10 * MB,
@@ -26,6 +36,11 @@ const DEFAULTS = {
   maxConnections: 100,
   maxConnectionsPerIp: 5,
   idleTimeoutMs: 60 * 1000,
+  // Connections from these IPs are served but not logged.
+  ignoreIps: [],
+  // Passwords that only exist in the bait files. A login using one of them
+  // means the bot downloaded the bait and came back with what it found.
+  honeytokens: ["Bzz-db-2019!", "hive-admin-4242"],
   onEvent: null,
 };
 
@@ -47,6 +62,8 @@ function fromEnv() {
       DEFAULTS.maxConnectionsPerIp
     ),
     idleTimeoutMs: number("IDLE_TIMEOUT_MS", DEFAULTS.idleTimeoutMs),
+    ignoreIps: list("IGNORE_IPS", DEFAULTS.ignoreIps),
+    honeytokens: list("HONEYTOKENS", DEFAULTS.honeytokens),
   };
 }
 

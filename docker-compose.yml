@@ -1,0 +1,24 @@
+services:
+  ftp-honeypot:
+    image: ghcr.io/christophe77/node-ftp-honeypot:latest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "21:2121"
+      - "50000-50100:50000-50100"
+    environment:
+      # Your public IP, announced to clients in passive mode.
+      PASV_URL: "203.0.113.10"
+      # IGNORE_IPS: "127.0.0.1,198.51.100.4"   # add your own IP to keep it out of the logs
+    volumes:
+      - pandora:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  pandora:
